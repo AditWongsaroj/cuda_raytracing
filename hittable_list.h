@@ -11,7 +11,6 @@ public:
   hittable** objects;
   int list_size;
 
-  __device__ hittable_list() {}
   __device__ hittable_list(hittable** o, int n) : objects(o), list_size(n) {};
 
 
@@ -33,4 +32,5 @@ public:
 
     return hit_anything;
   }
+
 };

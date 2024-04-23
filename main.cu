@@ -6,6 +6,26 @@
 
 #include <time.h>
 
+__host__ void render_out(const color* fb, int x, int y)
+{
+  // Print to file
+  std::ofstream pic;
+  pic.open("out.ppm");
+  char buffer[32];
+  sprintf(buffer, "P3\n%d %d\n255\n", x, y);
+  pic << buffer;
+  for (int j = y - 1; j >= 0; j--)
+  {
+    std::clog << "\rScan-lines remaining: " << (y - j) << ' ' << std::flush;
+    for (int i = 0; i < x; i++)
+    {
+      write_color(pic, fb[j * x + i]);
+    }
+  }
+  pic.close();
+}
+
+
 int main()
 {
   float aspect_ratio = 16.0f / 9.0f;
@@ -29,18 +49,19 @@ int main()
   std::cerr << "in " << tx << "x" << ty << " blocks.\n";
 
   // allocate FrameBuffer
+
   color* fb{};
   checkCudaErrors(cudaMallocManaged((void**)&fb, fb_size));
 
-  curandState* d_rand_state;
+  curandState* d_rand_state{};
   checkCudaErrors(cudaMalloc((void**)&d_rand_state, num_pixels * sizeof(curandState)));
 
   // World
-  hittable** d_list;
+  hittable** d_list{};
   checkCudaErrors(cudaMalloc((void**)&d_list, 2* sizeof(hittable*)));
   hittable** d_world{};
   checkCudaErrors(cudaMalloc((void**)&d_world, 1*  sizeof(hittable*)));
-  camera** d_camera;
+  camera** d_camera{};
   checkCudaErrors(cudaMalloc((void**)&d_camera, sizeof(camera*)));
 
   create_world KERNEL_ARGS2(1,1)(d_list, d_world, d_camera, image_width, image_height);
