@@ -5,9 +5,9 @@
 class hittable_list : public hittable
 {
 public:
-  __device__ hittable_list() {}
-  __device__ hittable_list(hittable** l, int n) { list = l; list_size = n; }
-  __device__ virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const;
+  ~hittable_list() = default;
+  __device__ hittable_list(hittable** l, int n): list(l), list_size(n) {}
+  __device__ virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
   hittable** list{};
   int list_size{};
 };

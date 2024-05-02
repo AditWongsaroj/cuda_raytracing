@@ -5,13 +5,13 @@
 class sphere : public hittable
 {
 public:
-  __device__ sphere() {}
+  ~sphere() = default;
   __device__ sphere(vec3 cen, float r, material* mat) : center(cen), radius(r), mat_ptr(mat) {};
 
   __device__ virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const;
   vec3 center;
   float radius{};
-  material* mat_ptr;
+  material* mat_ptr{};
 };
 
 __device__ bool sphere::hit(const ray& r, interval ray_t, hit_record& rec) const

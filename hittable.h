@@ -10,8 +10,8 @@ struct hit_record
   float t{};
   vec3 p;
   vec3 normal;
-  material* mat_ptr;
-  bool front_face;
+  material* mat_ptr{};
+  bool front_face{};
 
   __device__ void set_face_normal(const ray& r, const vec3& outward_normal)
   {

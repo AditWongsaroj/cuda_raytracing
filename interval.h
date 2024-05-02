@@ -1,6 +1,7 @@
 #pragma once
 
-#include "util.h"
+#include "common_headers.h"
+const float infinity = INFINITY;
 
 class interval
 {
