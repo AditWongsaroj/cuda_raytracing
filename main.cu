@@ -1,84 +1,59 @@
-﻿
-
-#include "util.h"
-
-#include "cuda_functions.h"
-
-#include <time.h>
-
-__host__ void render_out(const color* fb, int x, int y)
-{
-  // Print to file
-  std::ofstream pic;
-  pic.open("out.ppm");
-  char buffer[32];
-  sprintf(buffer, "P3\n%d %d\n255\n", x, y);
-  pic << buffer;
-  for (int j = y - 1; j >= 0; j--)
-  {
-    std::clog << "\rScan-lines remaining: " << (y - j) << ' ' << std::flush;
-    for (int i = 0; i < x; i++)
-    {
-      write_color(pic, fb[j * x + i]);
-    }
-  }
-  pic.close();
-}
-
+﻿#include "util.h"
 
 int main()
 {
-  float aspect_ratio = 16.0f / 9.0f;
+  int nx = 1200;
+  int ny = 600;
+  int ns = 100;
+  int tx = 16;
+  int ty = 16;
 
-  int image_width = 1200;
-  int image_height = int(image_width / aspect_ratio);
-  image_height = image_height < 1 ? 1 : image_height;
-
-  int samples = 100;
-  int tx = 8;
-  int ty = 8;
-
-  auto num_pixels = image_width * image_height ;
-  size_t fb_size = 3ll * num_pixels * sizeof(float);
-
-  dim3 blocks(image_width / tx + 1, image_height  / ty + 1);
-  dim3 threads(tx, ty);
-
-  std::cerr << "Rendering a " << image_width << "x" << image_height  << " image ";
-  std::cerr << "with " << samples << " samples per pixel ";
+  std::cerr << "Rendering a " << nx << "x" << ny << " image with " << ns << " samples per pixel ";
   std::cerr << "in " << tx << "x" << ty << " blocks.\n";
 
-  // allocate FrameBuffer
+  int num_pixels = nx * ny;
+  size_t fb_size = num_pixels * sizeof(vec3);
 
-  color* fb{};
+  // allocate FB
+  vec3* fb;
   checkCudaErrors(cudaMallocManaged((void**)&fb, fb_size));
 
-  curandState* d_rand_state{};
+  // allocate random state
+  curandState* d_rand_state;
   checkCudaErrors(cudaMalloc((void**)&d_rand_state, num_pixels * sizeof(curandState)));
 
-  // World
-  hittable** d_list{};
-  checkCudaErrors(cudaMalloc((void**)&d_list, 2* sizeof(hittable*)));
-  hittable** d_world{};
-  checkCudaErrors(cudaMalloc((void**)&d_world, 1*  sizeof(hittable*)));
-  camera** d_camera{};
+  // make our world of hittable objs & the camera
+  hittable** d_list;
+  checkCudaErrors(cudaMalloc((void**)&d_list, 2 * sizeof(hittable*)));
+  hittable** d_world;
+  checkCudaErrors(cudaMalloc((void**)&d_world, sizeof(hittable*)));
+  camera** d_camera;
   checkCudaErrors(cudaMalloc((void**)&d_camera, sizeof(camera*)));
-
-  create_world KERNEL_ARGS2(1,1)(d_list, d_world, d_camera, image_width, image_height);
+  create_world KERNEL_ARGS2( 1, 1 ) (d_list, d_world, d_camera);
   checkCudaErrors(cudaGetLastError());
   checkCudaErrors(cudaDeviceSynchronize());
 
+  clock_t start, stop;
+  start = clock();
   // Render our buffer
-
-  render KERNEL_ARGS2(blocks, threads) (samples, fb, d_camera, d_world, d_rand_state);
+  dim3 blocks(nx / tx + 1, ny / ty + 1);
+  dim3 threads(tx, ty);
+  render_init KERNEL_ARGS2( blocks, threads ) (nx, ny, d_rand_state);
   checkCudaErrors(cudaGetLastError());
   checkCudaErrors(cudaDeviceSynchronize());
-
-  render_out(fb, image_width, image_height);
-
-  //Clean up
+  render KERNEL_ARGS2(blocks, threads ) (fb, nx, ny, ns, d_camera, d_world, d_rand_state);
+  checkCudaErrors(cudaGetLastError());
   checkCudaErrors(cudaDeviceSynchronize());
-  free_world KERNEL_ARGS2(1,1) (d_list, d_world, d_camera);
+  stop = clock();
+  double timer_seconds = ((double)(stop - start)) / CLOCKS_PER_SEC;
+  std::cerr << "took " << timer_seconds << " seconds.\n";
+
+  // Output FB as Image
+
+  print_pgn(fb, nx, ny);
+  // clean up
+  checkCudaErrors(cudaDeviceSynchronize());
+  free_world KERNEL_ARGS2( 1, 1 ) (d_list, d_world, d_camera);
   checkCudaErrors(cudaGetLastError());
   checkCudaErrors(cudaFree(d_camera));
   checkCudaErrors(cudaFree(d_world));
@@ -86,6 +61,5 @@ int main()
   checkCudaErrors(cudaFree(d_rand_state));
   checkCudaErrors(cudaFree(fb));
 
-  // useful for cuda-memcheck --leak-check full
   cudaDeviceReset();
 }

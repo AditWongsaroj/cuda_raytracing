@@ -2,8 +2,6 @@
 
 #include "util.h"
 
-const float infinity = std::numeric_limits<float>::infinity();
-
 class interval
 {
 public:

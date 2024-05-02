@@ -1,17 +1,17 @@
 #pragma once
-#include <cuda_runtime.h>
-#include "util.h"
+
+
 #include "ray.h"
-#include "interval.h"
 
+class material;
 
-class hit_record
+struct hit_record
 {
-public:
-  point3 p;
-  vec3 normal;
   float t{};
-  bool front_face{};
+  vec3 p;
+  vec3 normal;
+  material* mat_ptr;
+  bool front_face;
 
   __device__ void set_face_normal(const ray& r, const vec3& outward_normal)
   {
@@ -26,7 +26,5 @@ public:
 class hittable
 {
 public:
-
   __device__ virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
-
 };
