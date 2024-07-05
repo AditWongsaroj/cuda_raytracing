@@ -1,5 +1,8 @@
 #pragma once
 
+// Defines
+#define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
+
 #include "common_headers.h"
 #include "hittable.h"
 
@@ -29,7 +32,7 @@ public:
   __device__ explicit lambertian(const vec3& albedo) : albedo(albedo) {}
 
   __device__ bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState* local_rand_state)
-    const
+    const override
   {
     auto scatter_direction = rec.normal + random_unit_vector(local_rand_state);
 
@@ -53,7 +56,7 @@ public:
   __device__ explicit metal(const vec3& albedo, float fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1){}
 
   __device__ bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState* local_rand_state)
-    const
+    const override
   {
     vec3 reflected = reflect(r_in.direction(), rec.normal);
     reflected = unit_vector(reflected) + (fuzz * random_unit_vector(local_rand_state));
@@ -72,7 +75,7 @@ class dielectric : public material {
     __device__ explicit dielectric(float refraction_index) : refraction_index(refraction_index) {}
 
     __device__ bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, curandState* local_rand_state)
-    const override {
+    const final{
         attenuation = vec3(1.0f, 1.0f, 1.0f);
         float ri = rec.front_face ? (1.0f/refraction_index) : refraction_index;
 

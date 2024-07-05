@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include "vec3.h"
+const int N = 1 << 20;
 
 void print_pgn(const vec3* fb, int nx, int ny)
 {
@@ -15,9 +15,9 @@ void print_pgn(const vec3* fb, int nx, int ny)
     {
       size_t pixel_index = j * nx + i;
 
-      int r = int(fb[pixel_index].r());
-      int g = int(fb[pixel_index].g());
-      int b = int(fb[pixel_index].b());
+      auto r = int(fb[pixel_index].r());
+      auto g = int(fb[pixel_index].g());
+      auto b = int(fb[pixel_index].b());
 
       pic << r << " " << g << " " << b << "\n";
     }

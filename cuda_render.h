@@ -21,7 +21,7 @@ void check_cuda(cudaError_t result, char const* const func, const char* const fi
 
 __device__ vec3 color(const ray& r, hittable** world, curandState* local_rand_state)
 {
-  const int max_iterations = 50;
+  const int max_iterations = 8;
 
   ray cur_ray = r;
   auto cur_attenuation = vec3(1.0, 1.0, 1.0);
@@ -70,16 +70,19 @@ __global__ void render_init(int max_x, int max_y, curandState* rand_state)
   if ((i >= max_x) || (j >= max_y)) return;
   int pixel_index = j * max_x + i;
   //Each thread gets same seed, a different sequence number, no offset
-  curand_init(1986+pixel_index,0, 0, &rand_state[pixel_index]);
+  curand_init(2024, pixel_index, 0, &rand_state[pixel_index]);
 }
 
-__global__ void render(vec3* fb,
-    int max_x, int max_y, int ns,
+__global__ void render(vec3* fb, int3 size_init, int ns,
     camera** cam, hittable** world, curandState* rand_state)
 {
+  int min_x = size_init.x;
+  int max_x = size_init.y;
+  int max_y = size_init.z;
+
   int i = threadIdx.x + blockIdx.x * blockDim.x;
   int j = threadIdx.y + blockIdx.y * blockDim.y;
-  if ((i >= max_x) || (j >= max_y)) return;
+  if ((i < min_x) || (i >= max_x) || (j >= max_y)) return;
   int pixel_index = j * max_x + i;
   curandState local_rand_state = rand_state[pixel_index];
   vec3 col(0, 0, 0);
